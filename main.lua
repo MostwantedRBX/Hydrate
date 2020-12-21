@@ -38,8 +38,8 @@ local options = {
 
 
 function Hydrate:OnInitialize()
-    self.RegisterChatCommand("hy","ChatCommand")-- This should be calling ChatCommand()
-    self.RegisterChatCommand("hydrate","ChatCommand")
+    self:RegisterChatCommand("hy","ChatCommand")-- This should be calling ChatCommand()
+    self:RegisterChatCommand("hydrate","ChatCommand")
 
     LibStub("AceConfig-3.0"):RegisterOptionsTable("Hydrate!", options, {"hydrate","hy"})
     self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Hydrate!","Hydrate!")
@@ -56,8 +56,8 @@ function Hydrate:OnEnable()
     local f = AceGUI:Create("Frame")
     f:SetLayout("Flow")
     local WaterBottle = AceGUI:Create("Icon")
-    WaterBottle:SetHeight(500)
-    WaterBottle:SetWidth(500)
+    WaterBottle:SetHeight(50)
+    WaterBottle:SetWidth(50)
     WaterBottle:SetImage("Interface\\ICONS\\INV_Drink_20")
     WaterBottle:SetImageSize(500, 500)
     WaterBottle:SetCallback("OnClick", function() print("Click!") end)
