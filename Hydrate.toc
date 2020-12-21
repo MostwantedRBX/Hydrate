@@ -5,5 +5,6 @@
 ## Author: Jereb Gainer
 ## DefaultState: enabled
 
+embeds.xml
 
 main.lua
