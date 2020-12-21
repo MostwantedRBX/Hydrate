@@ -1,0 +1,9 @@
+## Interface: 91000
+## Title: Hydrate!
+## Version: 0.8
+## Notes:A friendly reminder to drink some water.
+## Author: Jereb Gainer
+## DefaultState: enabled
+
+
+main.lua
