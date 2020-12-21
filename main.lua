@@ -28,9 +28,9 @@ local options = {
             set = "ToggleShowOnScreen",
         },
         open = {
-            name = "Do It",
+            name = "openui",
             type = "execute",
-            func = function()InterfaceOptionsFrame_OpenToCategory("Hydrate!") InterfaceOptionsFrame_OpenToCategory("Hydrate!")end,
+            func = function()InterfaceOptionsFrame_OpenToCategory("Hydrate!") InterfaceOptionsFrame_OpenToCategory("Hydrate!")end, --This worked for some reason...
         },
     },
 }
@@ -38,7 +38,7 @@ local options = {
 
 
 function Hydrate:OnInitialize()
-    self.RegisterChatCommand("hy","ChatCommand")
+    self.RegisterChatCommand("hy","ChatCommand")-- This should be calling ChatCommand()
     self.RegisterChatCommand("hydrate","ChatCommand")
 
     LibStub("AceConfig-3.0"):RegisterOptionsTable("Hydrate!", options, {"hydrate","hy"})
@@ -51,7 +51,17 @@ function Hydrate:OnInitialize()
 end
 
 function Hydrate:OnEnable()
-
+    -- UI Testing trying to do it with lua since its pretty simple.
+    AceGUI = LibStub("AceGUI-3.0")
+    local f = AceGUI:Create("Frame")
+    f:SetLayout("Flow")
+    local WaterBottle = AceGUI:Create("Icon")
+    WaterBottle:SetHeight(500)
+    WaterBottle:SetWidth(500)
+    WaterBottle:SetImage("Interface\\ICONS\\INV_Drink_20")
+    WaterBottle:SetImageSize(500, 500)
+    WaterBottle:SetCallback("OnClick", function() print("Click!") end)
+    f:AddChild(WaterBottle)
 end
 
  
@@ -59,7 +69,7 @@ function Hydrate:OnDisable()
 
 end
 
-function Hydrate:ChatCommand(input) -- trying to debug this
+function Hydrate:ChatCommand(input) -- Doesnt appear to be calling this function on /command
     self:Print(self.message)
     InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
     --[[if not input or input:trim() == "" then
