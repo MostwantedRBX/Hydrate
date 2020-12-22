@@ -1,5 +1,9 @@
 Hydrate = LibStub("AceAddon-3.0"):NewAddon("Hydrate!", "AceConsole-3.0", "AceEvent-3.0")
 
+defaultOptions = {
+    -- nothing yet, working on AceDB stuff
+}
+
 local options = {
     name = "Hydrate!",
     handler = Hydrate,
@@ -30,14 +34,17 @@ local options = {
     },
 }
 
-function Hydrate_printMSG(msg)
-    DEFAULT_CHAT_FRAME:AddMessage("Hydrate: " .. msg, 1, 1, 1);
+function Hydrate_printMSG(msg,color)
+    local c = color
+    if not c then --if no color is provided, then default to this one... it may be useful later.
+        c = "cff00ccff"
+    end
+    DEFAULT_CHAT_FRAME:AddMessage("|"..c.."Hydrate: " .. msg.."|r", 1, 1, 1);
 end
 
 local waitTable = {};
 local waitFrame = nil;
-
-function Hydrate_wait(delay, func, ...)
+function Hydrate_Wait(delay, func, ...)
   if(type(delay)~="number" or type(func)~="function") then
     return false;
   end
@@ -63,6 +70,11 @@ function Hydrate_wait(delay, func, ...)
   end
   tinsert(waitTable,{delay,func,{...}});
   return true;
+end
+
+local debounce = false; -- Debounce to prevent multiple clicks; I can't supply a temp function to the wait command or I would.
+function DebounceHandler(bool)
+    debounce = bool
 end
 
 
@@ -94,9 +106,14 @@ function Hydrate:OnEnable()
     WaterBottle:SetText("")
     local tex = WaterBottle:CreateTexture()
     tex:SetAllPoints(WaterBottle)
-    tex:SetTexture("Interface\\ICONS\\INV_Drink_20")
+    tex:SetTexture("Interface\\ICONS\\INV_Drink_20") -- Todo: Add my own water bottle texture
     WaterBottle:SetScript("OnClick", function(self, button)
-        Hydrate_wait(5,Hydrate_printMSG,"Tacos")
+        if not debounce then
+            debounce = true
+            -- this delay will be changeable in settings, but will default to once every 45m going off as thats the reccomended delay between drinking.
+            Hydrate_Wait(5,Hydrate_printMSG,"Hydrate yo self!")
+            Hydrate_Wait(5,DebounceHandler, false)
+        end
     end)
 end
 
@@ -105,7 +122,7 @@ function Hydrate:OnDisable()
 
 end
 
-function Hydrate:ChatCommand(input) -- Doesnt appear to be calling this function on /command
+function Hydrate:ChatCommand(input)
     self:Print(self.message)
     InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
 end

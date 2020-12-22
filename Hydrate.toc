@@ -4,6 +4,7 @@
 ## Notes:A friendly reminder to drink some water.
 ## Author: Jereb Gainer
 ## DefaultState: enabled
+## SavedVariablesPerCharacter: HydrateDB
 
 embeds.xml
 
