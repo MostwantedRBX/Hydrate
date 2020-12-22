@@ -27,19 +27,49 @@ local options = {
             get = "IsShowOnScreen",
             set = "ToggleShowOnScreen",
         },
-        open = {
-            name = "openui",
-            type = "execute",
-            func = function()InterfaceOptionsFrame_OpenToCategory("Hydrate!") InterfaceOptionsFrame_OpenToCategory("Hydrate!")end, --This worked for some reason...
-        },
     },
 }
 
+function Hydrate_printMSG(msg)
+    DEFAULT_CHAT_FRAME:AddMessage("Hydrate: " .. msg, 1, 1, 1);
+end
+
+local waitTable = {};
+local waitFrame = nil;
+
+function Hydrate_wait(delay, func, ...)
+  if(type(delay)~="number" or type(func)~="function") then
+    return false;
+  end
+  if(waitFrame == nil) then
+    waitFrame = CreateFrame("Frame","WaitFrame", UIParent);
+    waitFrame:SetScript("onUpdate",function (self,elapse)
+      local count = #waitTable;
+      local i = 1;
+      while(i<=count) do
+        local waitRecord = tremove(waitTable,i);
+        local d = tremove(waitRecord,1);
+        local f = tremove(waitRecord,1);
+        local p = tremove(waitRecord,1);
+        if(d>elapse) then
+          tinsert(waitTable,i,{d-elapse,f,p});
+          i = i + 1;
+        else
+          count = count - 1;
+          f(unpack(p));
+        end
+      end
+    end);
+  end
+  tinsert(waitTable,{delay,func,{...}});
+  return true;
+end
 
 
 function Hydrate:OnInitialize()
-    self:RegisterChatCommand("hy","ChatCommand")-- This should be calling ChatCommand()
+    self:RegisterChatCommand("hy","ChatCommand")
     self:RegisterChatCommand("hydrate","ChatCommand")
+    self:RegisterChatCommand("hy!","ChatCommand") -- Need to dicide whether or not to use Ace's options table with these.
 
     LibStub("AceConfig-3.0"):RegisterOptionsTable("Hydrate!", options, {"hydrate","hy"})
     self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Hydrate!","Hydrate!")
@@ -51,17 +81,23 @@ function Hydrate:OnInitialize()
 end
 
 function Hydrate:OnEnable()
-    -- UI Testing trying to do it with lua since its pretty simple.
-    AceGUI = LibStub("AceGUI-3.0")
-    local f = AceGUI:Create("Frame")
-    f:SetLayout("Flow")
-    local WaterBottle = AceGUI:Create("Icon")
-    WaterBottle:SetHeight(50)
-    WaterBottle:SetWidth(50)
-    WaterBottle:SetImage("Interface\\ICONS\\INV_Drink_20")
-    WaterBottle:SetImageSize(500, 500)
-    WaterBottle:SetCallback("OnClick", function() print("Click!") end)
-    f:AddChild(WaterBottle)
+    --local Frame = CreateFrame("Frame", "DragFrame2", UIParent) -- Not needed anymore; Testing for dragging
+
+    local WaterBottle = CreateFrame("Button", nil, UIParent, "UIPanelButtonTemplate")
+    WaterBottle:SetPoint("CENTER")
+    WaterBottle:SetMovable(true)
+    WaterBottle:EnableMouse(true)
+    WaterBottle:RegisterForDrag("LeftButton")
+    WaterBottle:SetScript("OnDragStart", WaterBottle.StartMoving)
+    WaterBottle:SetScript("OnDragStop", WaterBottle.StopMovingOrSizing) 
+    WaterBottle:SetSize(64, 64)
+    WaterBottle:SetText("")
+    local tex = WaterBottle:CreateTexture()
+    tex:SetAllPoints(WaterBottle)
+    tex:SetTexture("Interface\\ICONS\\INV_Drink_20")
+    WaterBottle:SetScript("OnClick", function(self, button)
+        Hydrate_wait(5,Hydrate_printMSG,"Tacos")
+    end)
 end
 
  
@@ -72,13 +108,6 @@ end
 function Hydrate:ChatCommand(input) -- Doesnt appear to be calling this function on /command
     self:Print(self.message)
     InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
-    --[[if not input or input:trim() == "" then
-        --InterfaceOptionsFrame_OpenToCategory("Hydrate!")
-    elseif input then
-        --InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
-    else
-        LibStub("AceConfigCmd-3.0"):HandleCommand("hy", "Hydrate!", input)
-    end]]
 end
 -- Don't need these yet.
 -- function Hydrate:IsShowInChat(info)
