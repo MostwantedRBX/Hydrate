@@ -77,6 +77,24 @@ function DebounceHandler(bool)
     debounce = bool
 end
 
+function ShakeThisWay(f,way)
+    local p,rT,rP,xOf,yOf = f:GetPoint()
+    if way == "up" then
+        f:SetPoint("CENTER",xOf,yOf+1)
+    elseif way == "down" then
+        f:SetPoint("CENTER",xOf,yOf-1)
+    end
+end
+
+local function ShakeAnimation(f)
+    for i=1,10,1 do
+        Hydrate_Wait(i/100, ShakeThisWay,f,"up")
+    end
+    for i=10,20,1 do
+        Hydrate_Wait(i/100, ShakeThisWay,f,"down")
+    end
+end
+
 function Hydrate:OnInitialize()
     self:RegisterChatCommand("hy","ChatCommand")
     self:RegisterChatCommand("hydrate","ChatCommand")
@@ -110,6 +128,7 @@ function Hydrate:OnEnable()
             -- this delay will be changeable in settings, but will default to once every 45m going off as thats the reccomended delay between drinking.
             Hydrate_Wait(5,Hydrate_printMSG,"Hydrate yo self!")
             Hydrate_Wait(5,DebounceHandler, false)
+            ShakeAnimation(WaterBottle)
         end
     end)
     --ani = AnimationGroup:CreateAnimation("Rotation",nil) -- ahhhhhhhhhhhhhhhhh
