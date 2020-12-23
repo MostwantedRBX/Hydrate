@@ -78,21 +78,29 @@ function DebounceHandler(bool)
 end
 
 function ShakeThisWay(f,way)
+    -- Interestingly, this bugs out if you try and move the icon too far up on your screen or too far to the side... 
+    -- "Hydrate\main.lua:84: Action[SetPoint] failed because[SetPoint would result in anchor family connection]: attempted from: <unnamed>:SetPoint."
     local p,rT,rP,xOf,yOf = f:GetPoint()
-    if way == "up" then
+    if way == "up" and f then
+        f:SetParent(UIParent)
         f:SetPoint("CENTER",xOf,yOf+1)
-    elseif way == "down" then
+    elseif f and way == "down" then
+        f:SetParent(UIParent)
         f:SetPoint("CENTER",xOf,yOf-1)
     end
 end
 
 local function ShakeAnimation(f)
-    for i=1,10,1 do
-        Hydrate_Wait(i/100, ShakeThisWay,f,"up")
+    for i=0,.5,.05 do
+        Hydrate_Wait(i, ShakeThisWay,f,"up")
     end
-    for i=10,20,1 do
-        Hydrate_Wait(i/100, ShakeThisWay,f,"down")
+    for i=.5,1.05,.05 do
+        Hydrate_Wait(i, ShakeThisWay,f,"down")
     end
+    --[[for i=1,1.15,.05 do
+        Hydrate_Wait(i, ShakeThisWay,f,"up")
+    end]]
+    Hydrate_Wait(1.05,ShakeAnimation,f) -- never good to call a function inside the same function... but here we are... Testing.
 end
 
 function Hydrate:OnInitialize()
