@@ -1,5 +1,5 @@
 ## Interface: 91000
-## Title: Hydrate!
+## Title: |cff00ccffHydrate!|r
 ## Version: 0.8
 ## Notes:A friendly reminder to drink some water.
 ## Author: Jereb Gainer

@@ -77,7 +77,6 @@ function DebounceHandler(bool)
     debounce = bool
 end
 
-
 function Hydrate:OnInitialize()
     self:RegisterChatCommand("hy","ChatCommand")
     self:RegisterChatCommand("hydrate","ChatCommand")
@@ -93,8 +92,6 @@ function Hydrate:OnInitialize()
 end
 
 function Hydrate:OnEnable()
-    --local Frame = CreateFrame("Frame", "DragFrame2", UIParent) -- Not needed anymore; Testing for dragging
-
     local WaterBottle = CreateFrame("Button", nil, UIParent, "UIPanelButtonTemplate")
     WaterBottle:SetPoint("CENTER")
     WaterBottle:SetMovable(true)
@@ -115,15 +112,15 @@ function Hydrate:OnEnable()
             Hydrate_Wait(5,DebounceHandler, false)
         end
     end)
+    --ani = AnimationGroup:CreateAnimation("Rotation",nil) -- ahhhhhhhhhhhhhhhhh
 end
 
- 
 function Hydrate:OnDisable()
 
 end
 
 function Hydrate:ChatCommand(input)
-    self:Print(self.message)
+    self:Print("Opening options...")
     InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
 end
 -- Don't need these yet.
