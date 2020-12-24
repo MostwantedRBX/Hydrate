@@ -1,5 +1,9 @@
 Hydrate = LibStub("AceAddon-3.0"):NewAddon("Hydrate!", "AceConsole-3.0", "AceEvent-3.0")
 
+reminderDelay = 45
+drank = false
+UpdateInterval = 1
+waitingForAnimation = false
 defaultOptions = {
     -- nothing yet, working on AceDB stuff
 }
@@ -76,6 +80,9 @@ local debounce = false; -- Debounce to prevent multiple clicks; I can't supply a
 function DebounceHandler(bool)
     debounce = bool
 end
+function NoLongerWaiting()
+    waitingForAnimation = false
+end
 
 function ShakeThisWay(f,way)
     -- Interestingly, this bugs out if you try and move the icon too far up on your screen or too far to the side... 
@@ -91,16 +98,27 @@ function ShakeThisWay(f,way)
 end
 
 local function ShakeAnimation(f)
-    for i=0,.5,.05 do
-        Hydrate_Wait(i, ShakeThisWay,f,"up")
+    if waitingForAnimation == false then
+        waitingForAnimation = true
+        for i=0,.5,.05 do
+            Hydrate_Wait(i, ShakeThisWay,f,"up")
+        end
+        for i=.5,1.05,.05 do
+            Hydrate_Wait(i, ShakeThisWay,f,"down")
+        end
+        Hydrate_Wait(1.05, SetDelay, "waitingForAnimation")
+        --[[for i=1,1.15,.05 do
+            Hydrate_Wait(i, ShakeThisWay,f,"up")
+        end]]
     end
-    for i=.5,1.05,.05 do
-        Hydrate_Wait(i, ShakeThisWay,f,"down")
+end
+
+function SetDelay(x)
+    if x == "waitingForAnimation" then
+        waitingForAnimation = false
+    elseif x == "drank" then
+        drank = false
     end
-    --[[for i=1,1.15,.05 do
-        Hydrate_Wait(i, ShakeThisWay,f,"up")
-    end]]
-    Hydrate_Wait(1.05,ShakeAnimation,f) -- never good to call a function inside the same function... but here we are... Testing.
 end
 
 function Hydrate:OnInitialize()
@@ -133,11 +151,24 @@ function Hydrate:OnEnable()
     WaterBottle:SetScript("OnClick", function(self, button)
         if not debounce then
             debounce = true
+            drank = true
             -- this delay will be changeable in settings, but will default to once every 45m going off as thats the reccomended delay between drinking.
-            Hydrate_Wait(5,Hydrate_printMSG,"Hydrate yo self!")
+            Hydrate_Wait(reminderDelay,Hydrate_printMSG,"Hydrate yo self!")
             Hydrate_Wait(5,DebounceHandler, false)
-            ShakeAnimation(WaterBottle)
+            
         end
+    end)
+    TimeSinceLastUpdate = 0
+    WaterBottle:SetScript("OnUpdate", function(self, elapsed)
+        TimeSinceLastUpdate = TimeSinceLastUpdate + elapsed; 	
+        if (TimeSinceLastUpdate > UpdateInterval) then
+            if not drank and not waitingForAnimation then
+                Hydrate_Wait(1.05,ShakeAnimation,WaterBottle)
+                Hydrate_Wait(reminderDelay,SetDelay,"drank")
+            end
+          TimeSinceLastUpdate = 0;
+        end
+
     end)
     --ani = AnimationGroup:CreateAnimation("Rotation",nil) -- ahhhhhhhhhhhhhhhhh
 end
@@ -175,3 +206,15 @@ function Hydrate:SetMessage(info,newValue)
     self.message = newValue
 end
 
+--[[
+    Psudo Code for triggering WaterBottle Animation to help my brain
+
+    If user hasn't drank within the delay timer then
+        send signal to function that handles animation triggering
+            check if the function is already triggered by using variable
+                if not then trigger animation until bottle is clicked and set the variable regulating trigger-age
+                    reset the cooldown on the bottle shaking animation
+                        repeat
+    
+
+]]
