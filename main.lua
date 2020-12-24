@@ -1,8 +1,8 @@
 Hydrate = LibStub("AceAddon-3.0"):NewAddon("Hydrate!", "AceConsole-3.0", "AceEvent-3.0")
 
-reminderDelay = 45
+reminderDelay = 2700
 drank = false
-UpdateInterval = 1
+UpdateInterval = 5.05
 waitingForAnimation = false
 defaultOptions = {
     -- nothing yet, working on AceDB stuff
@@ -76,6 +76,36 @@ function Hydrate_Wait(delay, func, ...)
   return true;
 end
 
+local waitForWaitTable = {};
+local waitForWaitFrame = nil;
+function Hydrate_Wait(delay, func, ...)
+  if(type(delay)~="number" or type(func)~="function") then
+    return false;
+  end
+  if(waitForWaitFrame == nil) then
+    waitForWaitFrame = CreateFrame("Frame","WaitForWaitFrame", UIParent);
+    waitForWaitFrame:SetScript("onUpdate",function (self,elapse)
+      local count = #waitForWaitTable;
+      local i = 1;
+      while(i<=count) do
+        local waitRecord = tremove(waitForWaitTable,i);
+        local d = tremove(waitRecord,1);
+        local f = tremove(waitRecord,1);
+        local p = tremove(waitRecord,1);
+        if(d>elapse) then
+          tinsert(waitForWaitTable,i,{d-elapse,f,p});
+          i = i + 1;
+        else
+          count = count - 1;
+          f(unpack(p));
+        end
+      end
+    end);
+  end
+  tinsert(waitForWaitTable,{delay,func,{...}});
+  return true;
+end
+
 local debounce = false; -- Debounce to prevent multiple clicks; I can't supply a temp function to the wait command or I would.
 function DebounceHandler(bool)
     debounce = bool
@@ -97,8 +127,18 @@ function ShakeThisWay(f,way)
     end
 end
 
+function SetDelay(x)
+    print("Setting Delay")
+    if x == "waitingForAnimation" then
+        waitingForAnimation = false
+    elseif x == "drank" then
+        drank = false
+    end
+end
+
 local function ShakeAnimation(f)
     if waitingForAnimation == false then
+        print("Starting Animation Queueing")
         waitingForAnimation = true
         for i=0,.5,.05 do
             Hydrate_Wait(i, ShakeThisWay,f,"up")
@@ -113,13 +153,7 @@ local function ShakeAnimation(f)
     end
 end
 
-function SetDelay(x)
-    if x == "waitingForAnimation" then
-        waitingForAnimation = false
-    elseif x == "drank" then
-        drank = false
-    end
-end
+
 
 function Hydrate:OnInitialize()
     self:RegisterChatCommand("hy","ChatCommand")
@@ -150,6 +184,8 @@ function Hydrate:OnEnable()
     tex:SetTexture("Interface\\ICONS\\INV_Drink_20") -- Todo: Add my own water bottle texture
     WaterBottle:SetScript("OnClick", function(self, button)
         if not debounce then
+            print("Clicky")
+            waitTable = {}
             debounce = true
             drank = true
             -- this delay will be changeable in settings, but will default to once every 45m going off as thats the reccomended delay between drinking.
@@ -162,8 +198,9 @@ function Hydrate:OnEnable()
     WaterBottle:SetScript("OnUpdate", function(self, elapsed)
         TimeSinceLastUpdate = TimeSinceLastUpdate + elapsed; 	
         if (TimeSinceLastUpdate > UpdateInterval) then
-            if not drank and not waitingForAnimation then
-                Hydrate_Wait(1.05,ShakeAnimation,WaterBottle)
+            if drank == false and waitingForAnimation == false then
+                print("Checks Passed, Queuing More")
+                Hydrate_Wait(6.05,ShakeAnimation,WaterBottle)
                 Hydrate_Wait(reminderDelay,SetDelay,"drank")
             end
           TimeSinceLastUpdate = 0;
