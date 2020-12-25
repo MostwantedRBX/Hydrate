@@ -1,10 +1,13 @@
 Hydrate = LibStub("AceAddon-3.0"):NewAddon("Hydrate!", "AceConsole-3.0", "AceEvent-3.0")
-
-reminderDelay = 2700
-drank = false
-UpdateInterval = 5.05
-waitingForAnimation = false
-defaultOptions = {
+local WaterBottle = CreateFrame("Button", nil, UIParent, "UIPanelButtonTemplate") --move this up here so its globally accessible
+local reminderDelay = 2700
+local drank = false
+local UpdateInterval = 5.05
+local waitingForAnimation = false
+local reminderTimer = nil
+local shakeDuration = 0.25
+local shakeCount = 20
+local defaultOptions = {
     -- nothing yet, working on AceDB stuff
 }
 
@@ -46,112 +49,143 @@ function Hydrate_printMSG(msg,color)
     DEFAULT_CHAT_FRAME:AddMessage("|"..c.."Hydrate: " .. msg.."|r", 1, 1, 1);
 end
 
-local waitTable = {};
-local waitFrame = nil;
-function Hydrate_Wait(delay, func, ...)
-  if(type(delay)~="number" or type(func)~="function") then
-    return false;
-  end
-  if(waitFrame == nil) then
-    waitFrame = CreateFrame("Frame","WaitFrame", UIParent);
-    waitFrame:SetScript("onUpdate",function (self,elapse)
-      local count = #waitTable;
-      local i = 1;
-      while(i<=count) do
-        local waitRecord = tremove(waitTable,i);
-        local d = tremove(waitRecord,1);
-        local f = tremove(waitRecord,1);
-        local p = tremove(waitRecord,1);
-        if(d>elapse) then
-          tinsert(waitTable,i,{d-elapse,f,p});
-          i = i + 1;
-        else
-          count = count - 1;
-          f(unpack(p));
-        end
-      end
-    end);
-  end
-  tinsert(waitTable,{delay,func,{...}});
-  return true;
-end
+-- local waitTable = {};
+-- local waitFrame = nil;
+-- function Hydrate_Wait(delay, func, ...)
+--   if(type(delay)~="number" or type(func)~="function") then
+--     return false;
+--   end
+--   if(waitFrame == nil) then
+--     waitFrame = CreateFrame("Frame","WaitFrame", UIParent);
+--     waitFrame:SetScript("onUpdate",function (self,elapse)
+--       local count = #waitTable;
+--       local i = 1;
+--       while(i<=count) do
+--         local waitRecord = tremove(waitTable,i);
+--         local d = tremove(waitRecord,1);
+--         local f = tremove(waitRecord,1);
+--         local p = tremove(waitRecord,1);
+--         if(d>elapse) then
+--           tinsert(waitTable,i,{d-elapse,f,p});
+--           i = i + 1;
+--         else
+--           count = count - 1;
+--           f(unpack(p));
+--         end
+--       end
+--     end);
+--   end
+--   tinsert(waitTable,{delay,func,{...}});
+--   return true;
+-- end
 
-local waitForWaitTable = {};
-local waitForWaitFrame = nil;
-function Hydrate_Wait(delay, func, ...)
-  if(type(delay)~="number" or type(func)~="function") then
-    return false;
-  end
-  if(waitForWaitFrame == nil) then
-    waitForWaitFrame = CreateFrame("Frame","WaitForWaitFrame", UIParent);
-    waitForWaitFrame:SetScript("onUpdate",function (self,elapse)
-      local count = #waitForWaitTable;
-      local i = 1;
-      while(i<=count) do
-        local waitRecord = tremove(waitForWaitTable,i);
-        local d = tremove(waitRecord,1);
-        local f = tremove(waitRecord,1);
-        local p = tremove(waitRecord,1);
-        if(d>elapse) then
-          tinsert(waitForWaitTable,i,{d-elapse,f,p});
-          i = i + 1;
-        else
-          count = count - 1;
-          f(unpack(p));
-        end
-      end
-    end);
-  end
-  tinsert(waitForWaitTable,{delay,func,{...}});
-  return true;
-end
+-- local waitForWaitTable = {};
+-- local waitForWaitFrame = nil;
+-- local function Hydrate_Wait(delay, func, ...)
+--     if(type(delay)~="number" or type(func)~="function") then
+--         return false;
+--     end
+--     if(waitForWaitFrame == nil) then
+--         waitForWaitFrame = CreateFrame("Frame","WaitForWaitFrame", UIParent);
+--         waitForWaitFrame:SetScript("onUpdate",function (self,elapse)
+--         local count = #waitForWaitTable;
+--         local i = 1;
+--         while(i<=count) do
+--             local waitRecord = tremove(waitForWaitTable,i);
+--             local d = tremove(waitRecord,1);
+--             local f = tremove(waitRecord,1);
+--             local p = tremove(waitRecord,1);
+--             if(d>elapse) then
+--             tinsert(waitForWaitTable,i,{d-elapse,f,p});
+--             i = i + 1;
+--             else
+--             count = count - 1;
+--             f(unpack(p));
+--             end
+--         end
+--         end);
+--     end
+--     tinsert(waitForWaitTable,{delay,func,{...}});
+--     return true;
+-- end
 
-local debounce = false; -- Debounce to prevent multiple clicks; I can't supply a temp function to the wait command or I would.
-function DebounceHandler(bool)
-    debounce = bool
-end
-function NoLongerWaiting()
-    waitingForAnimation = false
-end
 
-function ShakeThisWay(f,way)
-    -- Interestingly, this bugs out if you try and move the icon too far up on your screen or too far to the side... 
-    -- "Hydrate\main.lua:84: Action[SetPoint] failed because[SetPoint would result in anchor family connection]: attempted from: <unnamed>:SetPoint."
-    local p,rT,rP,xOf,yOf = f:GetPoint()
-    if way == "up" and f then
-        f:SetParent(UIParent)
-        f:SetPoint("CENTER",xOf,yOf+1)
-    elseif f and way == "down" then
-        f:SetParent(UIParent)
-        f:SetPoint("CENTER",xOf,yOf-1)
+-- local debounce = false; -- Debounce to prevent multiple clicks; I can't supply a temp function to the wait command or I would.
+-- function DebounceHandler(bool)
+--     debounce = bool
+-- end
+-- function NoLongerWaiting()
+--     waitingForAnimation = false
+-- end
+
+-- function ShakeThisWay(f,way)
+--     -- Interestingly, this bugs out if you try and move the icon too far up on your screen or too far to the side... 
+--     -- "Hydrate\main.lua:84: Action[SetPoint] failed because[SetPoint would result in anchor family connection]: attempted from: <unnamed>:SetPoint."
+--     local p,rT,rP,xOf,yOf = f:GetPoint()
+--     if way == "up" and f then
+--         f:SetParent(UIParent)
+--         f:SetPoint("CENTER",xOf,yOf+1)
+--     elseif f and way == "down" then
+--         f:SetParent(UIParent)
+--         f:SetPoint("CENTER",xOf,yOf-1)
+--     end
+-- end
+
+-- Shakes the bottle down by shakeMaginude pixels
+local function ShakeBottleDown()
+    local shakeMagnitude = 3
+    print("Shaking the bottle down!") --debug
+    if (WaterBottle) then
+        local point, relativeTo, relativePoint, xOf, yOf = WaterBottle:GetPoint()
+        WaterBottle:SetParent(UIParent)
+        WaterBottle:SetPoint("CENTER", xOf, yOf - shakeMagnitude)
     end
 end
 
-function SetDelay(x)
-    print("Setting Delay")
-    if x == "waitingForAnimation" then
-        waitingForAnimation = false
-    elseif x == "drank" then
-        drank = false
+-- Shakes the bottle up by shakeMaginude pixels
+local function ShakeBottleUp()
+    local shakeMagnitude = 3
+    print("Shaking the bottle up!") --debug
+    if (WaterBottle) then
+        local point, relativeTo, relativePoint, xOf, yOf = WaterBottle:GetPoint()
+        WaterBottle:SetParent(UIParent)
+        WaterBottle:SetPoint("CENTER", xOf, yOf + shakeMagnitude)
     end
 end
 
-local function ShakeAnimation(f)
-    if waitingForAnimation == false then
-        print("Starting Animation Queueing")
-        waitingForAnimation = true
-        for i=0,.5,.05 do
-            Hydrate_Wait(i, ShakeThisWay,f,"up")
-        end
-        for i=.5,1.05,.05 do
-            Hydrate_Wait(i, ShakeThisWay,f,"down")
-        end
-        Hydrate_Wait(1.05, SetDelay, "waitingForAnimation")
-        --[[for i=1,1.15,.05 do
-            Hydrate_Wait(i, ShakeThisWay,f,"up")
-        end]]
+-- Shakes the bottle to the right by shakeMaginude pixels
+local function ShakeBottleRight()
+    local shakeMagnitude = 1
+    print("Shaking the bottle right!") --debug
+    if (WaterBottle) then
+        local point, relativeTo, relativePoint, xOf, yOf = WaterBottle:GetPoint()
+        WaterBottle:SetParent(UIParent)
+        WaterBottle:SetPoint("CENTER", xOf + shakeMagnitude, yOf)
     end
 end
+
+-- Shakes the bottle to the left by shakeMaginude pixels
+local function ShakeBottleLeft()
+    local shakeMagnitude = 1
+    print("Shaking the bottle left!") --debug
+    if (WaterBottle) then
+        local point, relativeTo, relativePoint, xOf, yOf = WaterBottle:GetPoint()
+        WaterBottle:SetParent(UIParent)
+        WaterBottle:SetPoint("CENTER", xOf - shakeMagnitude, yOf)
+    end
+    local rightTicker = Hydrate:CreateTimer(shakeDuration, ShakeBottleRight, 1)
+end
+
+
+
+-- function SetDelay(x)
+--     print("Setting Delay")
+--     if x == "waitingForAnimation" then
+--         waitingForAnimation = false
+--     elseif x == "drank" then
+--         drank = false
+--     end
+-- end
 
 
 
@@ -170,7 +204,6 @@ function Hydrate:OnInitialize()
 end
 
 function Hydrate:OnEnable()
-    local WaterBottle = CreateFrame("Button", nil, UIParent, "UIPanelButtonTemplate")
     WaterBottle:SetPoint("CENTER")
     WaterBottle:SetMovable(true)
     WaterBottle:EnableMouse(true)
@@ -183,28 +216,19 @@ function Hydrate:OnEnable()
     tex:SetAllPoints(WaterBottle)
     tex:SetTexture("Interface\\ICONS\\INV_Drink_20") -- Todo: Add my own water bottle texture
     WaterBottle:SetScript("OnClick", function(self, button)
-        if not debounce then
-            print("Clicky")
-            waitTable = {}
-            debounce = true
-            drank = true
-            -- this delay will be changeable in settings, but will default to once every 45m going off as thats the reccomended delay between drinking.
-            Hydrate_Wait(reminderDelay,Hydrate_printMSG,"Hydrate yo self!")
-            Hydrate_Wait(5,DebounceHandler, false)
-            
-        end
+        Hydrate:CreateTimer(shakeDuration, ShakeBottleUp, shakeCount)
     end)
-    TimeSinceLastUpdate = 0
+    -- local TimeSinceLastUpdate = 0 -- made this local
     WaterBottle:SetScript("OnUpdate", function(self, elapsed)
-        TimeSinceLastUpdate = TimeSinceLastUpdate + elapsed; 	
-        if (TimeSinceLastUpdate > UpdateInterval) then
-            if drank == false and waitingForAnimation == false then
-                print("Checks Passed, Queuing More")
-                Hydrate_Wait(6.05,ShakeAnimation,WaterBottle)
-                Hydrate_Wait(reminderDelay,SetDelay,"drank")
-            end
-          TimeSinceLastUpdate = 0;
-        end
+        -- TimeSinceLastUpdate = TimeSinceLastUpdate + elapsed; 	
+        -- if (TimeSinceLastUpdate > UpdateInterval) then
+        --     if drank == false and waitingForAnimation == false then
+        --         print("Checks Passed, Queuing More")
+        --         Hydrate_Wait(0.5,ShakeAnimation,WaterBottle)
+        --         Hydrate_Wait(reminderDelay,SetDelay,"drank")
+        --     end
+        --   TimeSinceLastUpdate = 0;
+        -- end
 
     end)
     --ani = AnimationGroup:CreateAnimation("Rotation",nil) -- ahhhhhhhhhhhhhhhhh
@@ -218,6 +242,25 @@ function Hydrate:ChatCommand(input)
     self:Print("Opening options...")
     InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
 end
+
+--
+function Hydrate:CreateTimer(secBtwnExec, funcToExec, repeatCount)
+    if (repeatCount) then
+        reminderTimer = C_Timer.NewTicker(secBtwnExec, funcToExec, repeatCount)
+    else
+        reminderTimer = C_Timer.NewTimer(secBtwnExec, funcToExec)
+    end
+    print("<Hydrate> Next timer resolution will be in " .. secBtwnExec .. " seconds!") --debug
+end
+
+-- Use this to cancel the reminderTimer when they user does some certain action.
+function Hydrate:CancelTimer(timerToCancel)
+    if (not timerToCancel:IsCancelled()) then
+        timerToCancel:Cancel()
+        print("<Hydrate> Timer " .. tostring(timerToCancel) .. " was cancelled!") --debug
+    end
+end
+
 -- Don't need these yet.
 -- function Hydrate:IsShowInChat(info)
 --     return self.showInChat
