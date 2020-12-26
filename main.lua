@@ -5,8 +5,9 @@ local drank = false
 local UpdateInterval = 5.05
 local waitingForAnimation = false
 local reminderTimer = nil
-local shakeDuration = 0.25
+local shakeDuration = 0.025
 local shakeCount = 20
+local goingUp = true
 local defaultOptions = {
     -- nothing yet, working on AceDB stuff
 }
@@ -77,36 +78,6 @@ end
 --   end
 --   tinsert(waitTable,{delay,func,{...}});
 --   return true;
--- end
-
--- local waitForWaitTable = {};
--- local waitForWaitFrame = nil;
--- local function Hydrate_Wait(delay, func, ...)
---     if(type(delay)~="number" or type(func)~="function") then
---         return false;
---     end
---     if(waitForWaitFrame == nil) then
---         waitForWaitFrame = CreateFrame("Frame","WaitForWaitFrame", UIParent);
---         waitForWaitFrame:SetScript("onUpdate",function (self,elapse)
---         local count = #waitForWaitTable;
---         local i = 1;
---         while(i<=count) do
---             local waitRecord = tremove(waitForWaitTable,i);
---             local d = tremove(waitRecord,1);
---             local f = tremove(waitRecord,1);
---             local p = tremove(waitRecord,1);
---             if(d>elapse) then
---             tinsert(waitForWaitTable,i,{d-elapse,f,p});
---             i = i + 1;
---             else
---             count = count - 1;
---             f(unpack(p));
---             end
---         end
---         end);
---     end
---     tinsert(waitForWaitTable,{delay,func,{...}});
---     return true;
 -- end
 
 
@@ -216,10 +187,15 @@ function Hydrate:OnEnable()
     tex:SetAllPoints(WaterBottle)
     tex:SetTexture("Interface\\ICONS\\INV_Drink_20") -- Todo: Add my own water bottle texture
     WaterBottle:SetScript("OnClick", function(self, button)
+        goingUp = true
         Hydrate:CreateTimer(shakeDuration, ShakeBottleUp, shakeCount)
+        goingUp = false
+        Hydrate:CreateDelayedTimer(shakeDuration, ShakeBottleDown, shakeCount*2)
+        goingUp = true
+        Hydrate:CreateDelayedTimer(shakeDuration, ShakeBottleUp, shakeCount)
     end)
     -- local TimeSinceLastUpdate = 0 -- made this local
-    WaterBottle:SetScript("OnUpdate", function(self, elapsed)
+    --WaterBottle:SetScript("OnUpdate", function(self, elapsed)
         -- TimeSinceLastUpdate = TimeSinceLastUpdate + elapsed; 	
         -- if (TimeSinceLastUpdate > UpdateInterval) then
         --     if drank == false and waitingForAnimation == false then
@@ -230,7 +206,7 @@ function Hydrate:OnEnable()
         --   TimeSinceLastUpdate = 0;
         -- end
 
-    end)
+    --end)
     --ani = AnimationGroup:CreateAnimation("Rotation",nil) -- ahhhhhhhhhhhhhhhhh
 end
 
@@ -251,6 +227,19 @@ function Hydrate:CreateTimer(secBtwnExec, funcToExec, repeatCount)
         reminderTimer = C_Timer.NewTimer(secBtwnExec, funcToExec)
     end
     print("<Hydrate> Next timer resolution will be in " .. secBtwnExec .. " seconds!") --debug
+end
+
+function Hydrate:CreateDelayedTimer(secBtwnExec, funcToExec, repeatCount)
+    if not goingUp then
+        C_Timer.After(.6,function()
+            reminderTimer = C_Timer.NewTicker(secBtwnExec, funcToExec, repeatCount)
+        end)
+    elseif goingUp then
+        C_Timer.After(1.9,function()
+            reminderTimer = C_Timer.NewTicker(secBtwnExec, funcToExec, repeatCount)
+        end)
+    end
+
 end
 
 -- Use this to cancel the reminderTimer when they user does some certain action.
